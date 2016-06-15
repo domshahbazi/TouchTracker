@@ -8,7 +8,7 @@
 
 import UIKit
 
-class DrawView: UIView {
+class DrawView: UIView, UIGestureRecognizerDelegate {
     
     var currentLines = [NSValue:Line]()
     var finishedLines = [Line]()
@@ -20,6 +20,8 @@ class DrawView: UIView {
             }
         }
     }
+    var moveRecognizer: UIPanGestureRecognizer!
+    
     
     @IBInspectable var finishedLineColor: UIColor = UIColor.blackColor() {
         didSet {
@@ -53,8 +55,13 @@ class DrawView: UIView {
         tapRecognizer.requireGestureRecognizerToFail(doubleTapRecognizer)
         addGestureRecognizer(tapRecognizer)
         
-        let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: "longPress:")
+        let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(DrawView.longPress(_:)))
         addGestureRecognizer(longPressRecognizer)
+        
+        moveRecognizer = UIPanGestureRecognizer(target: self, action: #selector(DrawView.moveLine(_:)))
+        moveRecognizer.delegate = self
+        moveRecognizer.cancelsTouchesInView = false
+        addGestureRecognizer(moveRecognizer)
     }
     
     func strokeLine(line: Line) {
@@ -236,6 +243,33 @@ class DrawView: UIView {
         }
         
         setNeedsDisplay()
+    }
+    
+    func moveLine(gestureRecognizer: UIPanGestureRecognizer) {
+        print("Recognized a pan")
+        
+        if let index = selectedLineIndex {
+            if gestureRecognizer.state == .Changed {
+                let translation = gestureRecognizer.translationInView(self)
+                
+                finishedLines[index].begin.x += translation.x
+                finishedLines[index].begin.y += translation.y
+                finishedLines[index].end.x += translation.x
+                finishedLines[index].end.y += translation.y
+                
+                gestureRecognizer.setTranslation(CGPoint.zero, inView: self)
+                
+                setNeedsDisplay()
+                
+            }
+        }
+        else {
+            return
+        }
+    }
+    
+    func gestureRecognizer(gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWithGestureRecognizer otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
     }
     
     
